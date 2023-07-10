@@ -16,26 +16,26 @@ def index():
 def process():
     # Get the uploaded files from the request
     file1 = request.files['file1']
-    file2 = request.files['file2']
+    #file2 = request.files['file2']
 
     # Save the uploaded files to the server
     file1_path = 'uploads/' + file1.filename
-    file2_path = 'uploads/' + file2.filename
+    #file2_path = 'uploads/' + file2.filename
     file1.save(file1_path)
-    file2.save(file2_path)
+    #file2.save(file2_path)
 
     # Process the Excel files using a Python script
-    output_path, failed_rows_df = process_files(file1_path, file2_path)
+    output_path, failed_rows_df = process_files(file1_path)
 
     # Return the download link for the output file and render the template
     return render_template('result.html', output_path=output_path, failed_rows=failed_rows_df.to_dict(orient='records'))
 
 # Process the Excel files and generate the output file
-def process_files(file1_path, file2_path):
+def process_files(file1_path):
     # Read the Excel files using pandas
     df_old = pd.read_excel(file1_path, 1)
-    df_new = pd.read_excel(file2_path, 1)
-
+    df_new = pd.read_excel('uploads/Calendar Dates - 5784.xlsx', 1)
+    df_old.columns = [col.strip() for col in df_old.columns]
     # Perform your desired data transformations here
     # ...
     pattern = r"(Line \d+)"
@@ -54,7 +54,7 @@ def process_files(file1_path, file2_path):
 
     # Write the modified data to a new Excel file
     output_path = 'uploads/output.xlsx'
-    final_df.to_excel(output_path, index=False)
+
 
     risk_rows_table = final_df[final_df.char_limit < final_df.text_length]
     risk_rows_table['Reason'] = 'Character Limit Exceeded'
@@ -73,6 +73,8 @@ def process_files(file1_path, file2_path):
 
     #failed_rows_df.to_html(index=False)
     print(failed_rows)
+    final_df.drop(['row_value','text_length'], axis=1, inplace=True)
+    final_df.to_excel(output_path, index=False)
     return output_path, failed_rows_df
 
 
@@ -85,25 +87,3 @@ def download():
 if __name__ == '__main__':
     app.run()
 
-
-from flask import Flask, request, render_template, session, redirect
-import numpy as np
-import pandas as pd
-
-
-# app = Flask(__name__)
-#
-# df = pd.DataFrame({'A': [0, 1, 2, 3, 4],
-#                    'B': [5, 6, 7, 8, 9],
-#                    'C': ['a', 'b', 'c--', 'd', 'e']})
-#
-#
-# @app.route('/', methods=("POST", "GET"))
-# def html_table():
-#
-#     return render_template('simple.html',  tables=[df.to_html()])
-#
-#
-#
-# if __name__ == '__main__':
-#     app.run(host='0.0.0.0')
