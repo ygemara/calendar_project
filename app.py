@@ -25,10 +25,10 @@ def process():
     #file2.save(file2_path)
 
     # Process the Excel files using a Python script
-    output_path, failed_rows_df = process_files(file1_path)
+    output_path1, output_path2, failed_rows_df = process_files(file1_path)
 
     # Return the download link for the output file and render the template
-    return render_template('result.html', output_path=output_path, failed_rows=failed_rows_df.to_dict(orient='records'))
+    return render_template('result.html', output_path1=output_path1,output_path2=output_path2, failed_rows=failed_rows_df.to_dict(orient='records'))
 
 # Process the Excel files and generate the output file
 def process_files(file1_path):
@@ -52,8 +52,7 @@ def process_files(file1_path):
     final_df['text_length'] = final_df.Text_5783.str.len().fillna(0)
     final_df = final_df.sort_values(by='row_value')
 
-    # Write the modified data to a new Excel file
-    output_path = 'uploads/output.xlsx'
+
 
 
     risk_rows_table = final_df[final_df.char_limit < final_df.text_length]
@@ -71,17 +70,23 @@ def process_files(file1_path):
     failed_rows_df = pd.DataFrame(np.vstack([missing_table, risk_rows_table]), columns=missing_table.columns)
     failed_rows = failed_rows_df.values.tolist()
 
+    # Write the modified data to a new Excel file
+    output_path1 = 'uploads/output.xlsx'
+    output_path2 = 'uploads/errors.xlsx'
+
     #failed_rows_df.to_html(index=False)
     print(failed_rows)
     final_df.drop(['row_value','text_length'], axis=1, inplace=True)
-    final_df.to_excel(output_path, index=False)
-    return output_path, failed_rows_df
+    final_df.columns = ['Hebrew', 'Date', 'Date and Line', 'Text', 'char_limit']
+    final_df.to_excel(output_path1, index=False)
+    failed_rows_df.to_excel(output_path2, index=False)
+    return output_path1, output_path2, failed_rows_df
 
 
 # Define the route for file download
-@app.route('/download')
-def download():
-    output_path = 'uploads/output.xlsx'
+@app.route('/download/<file_name>')
+def download(file_name):
+    output_path = 'uploads/' +file_name
     return send_file(output_path, as_attachment=True)
 
 if __name__ == '__main__':

@@ -3,15 +3,31 @@
 <head>
     <title>Excel File Processing</title>
     <link rel="stylesheet" type="text/css" href="{{ url_for('static',filename='style.css') }}">
+    <style>
+      .download-link {
+            display: inline-block;
+            padding: 10px 10px;
+            background-color: #2196F3;
+            color: white;
+            text-decoration: none;
+            border-radius: 4px;
+            font-weight: bold;
+            font-size: 16px;
+        }
+
+        .download-link:hover {
+            background-color: #64B5F6;
+        }
+    </style>
 </head>
 <body>
     <h1>Excel File Processing</h1>
     <form action="/process" method="post" enctype="multipart/form-data">
-        <label for="file1">Choose Old File:</label>
-        <input type="file" name="file1" id="file1"><br><br>
+        <label for="file1" style="font-size: 20px">Choose Old File:</label>
+        <input style="font-size: 20px" type="file" name="file1" id="file1"><br><br>
 {#        <label for="file2">File 2:</label>#}
 {#        <input type="file" name="file2" id="file2"><br><br>#}
-        <input type="submit" value="Process Files">
+        <input class = 'download-link' type="submit" value="Process Files">
     </form>
 </body>
 </html>
