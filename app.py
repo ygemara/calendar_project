@@ -33,8 +33,16 @@ def process():
 # Process the Excel files and generate the output file
 def process_files(file1_path):
     # Read the Excel files using pandas
-    df_old = pd.read_excel(file1_path, 1)
+
+    excel_file = pd.ExcelFile('uploads/Calendar Dates - 5783.xlsx')
+
+    if len(excel_file.sheet_names) == 1:
+        df_old = pd.read_excel('uploads/Calendar Dates - 5783.xlsx', 0)
+    else:
+        df_old = pd.read_excel('uploads/Calendar Dates - 5783.xlsx', 1)
+
     df_new = pd.read_excel('uploads/Calendar Dates - 5784.xlsx', 1)
+
     df_old.columns = [col.strip() for col in df_old.columns]
     # Perform your desired data transformations here
     # ...
@@ -52,21 +60,38 @@ def process_files(file1_path):
     final_df['text_length'] = final_df.Text_5783.str.len().fillna(0)
     final_df = final_df.sort_values(by='row_value')
 
-
-
-
     risk_rows_table = final_df[final_df.char_limit < final_df.text_length]
     risk_rows_table['Reason'] = 'Character Limit Exceeded'
     risk_rows_table = risk_rows_table[['Hebrew', 'Date', 'Date and Line_5784', 'Text_5783', 'Reason']]
 
-    set_old = set(df_old[~df_old.Text.isnull()]['Text'])
-    set_new = set(final_df[~final_df.Text_5783.isnull()]["Text_5783"])
+    old_df_unique_values = df_old[~df_old.Text.isnull()][['Hebrew', 'Date', 'Text']]
+    new_df_unique_values = final_df[~final_df.Text_5783.isnull()][['Hebrew', 'Date', 'Text_5783']]
+
+    set_old = set()
+    for index, row in old_df_unique_values.iterrows():
+        # Get the three column values for the current row
+        values = tuple(row[['Hebrew', 'Date', 'Text']])
+
+        # Add the values to the set
+        set_old.add(values)
+
+    set_new = set()
+    for index, row in new_df_unique_values.iterrows():
+        # Get the three column values for the current row
+        values = tuple(row[['Hebrew', 'Date', 'Text_5783']])
+        # Add the values to the set
+        set_new.add(values)
+
+    # set_old = set(df_old[~df_old.Text.isnull()]['Text'])
+    # set_new = set(final_df[~final_df.Text_5783.isnull()]["Text_5783"])
     missing_set = (set_old - set_new)
 
-    missing_table = df_old[df_old.Text.isin(list(missing_set))]
-    missing_table['Reason'] = 'Date Compatibility Issue'
-    missing_table = missing_table[['Hebrew', 'Date', 'Date and Line', 'Text', 'Reason']]
+    # Apply the masks to the dataframe
+    missing_table = df_old[df_old.apply(lambda row: (row['Hebrew'], row['Date'], row['Text']) in missing_set, axis=1)]
 
+    # missing_table = df_old[df_old.Text.isin(list(missing_set))]
+    missing_table['Reason'] = 'Compatibility Issue'
+    missing_table = missing_table[['Hebrew', 'Date', 'Date and Line', 'Text', 'Reason']]
     failed_rows_df = pd.DataFrame(np.vstack([missing_table, risk_rows_table]), columns=missing_table.columns)
     failed_rows = failed_rows_df.values.tolist()
 
