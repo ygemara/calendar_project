@@ -2,6 +2,8 @@
 from flask import Flask, render_template, request, send_file, redirect
 import pandas as pd
 import numpy as np
+import logging
+import datetime
 import re
 
 app = Flask(__name__)
@@ -14,32 +16,53 @@ def index():
 # Define the route for handling the file upload and processing
 @app.route('/process', methods=['POST'])
 def process():
-    # Get the uploaded files from the request
-    file1 = request.files['file1']
-    #file2 = request.files['file2']
+    try:
+        # Get the uploaded files from the request
+        file1 = request.files['file1']
+        #file2 = request.files['file2']
 
-    # Save the uploaded files to the server
-    file1_path = 'uploads/' + file1.filename
-    #file2_path = 'uploads/' + file2.filename
-    file1.save(file1_path)
-    #file2.save(file2_path)
+        # add time component to file name
 
-    # Process the Excel files using a Python script
-    output_path1, output_path2, failed_rows_df = process_files(file1_path)
+        current_time = datetime.datetime.now()
 
-    # Return the download link for the output file and render the template
-    return render_template('result.html', output_path1=output_path1,output_path2=output_path2, failed_rows=failed_rows_df.to_dict(orient='records'))
+        # Format the current time as part of the file name
+        # Save the uploaded files to the server
+        file1_path = 'uploads/' + str(current_time.strftime('%Y-%m-%d_%H-%M-%S')) + '_' + file1.filename
+            #file2_path = 'uploads/' + file2.filename
+        file1.save(file1_path)
+        #file2.save(file2_path)whihc
+
+        # Process the Excel files using a Python script
+        output_path1, output_path2, failed_rows_df = process_files(file1_path)
+
+        # Return the download link for the output file and render the template
+        return render_template('result.html', output_path1=output_path1,output_path2=output_path2, failed_rows=failed_rows_df.to_dict(orient='records'))
+
+    except Exception as e:
+        # Log the error
+        logging.exception('An error occurred')
+
+        # Raise the exception to trigger the error handler
+        raise e
+
+@app.errorhandler(Exception)
+def handle_error(e):
+    # Log the error
+    logging.exception('An error occurred')
+
+    # Render a custom error page with the actual error message
+    return render_template('error.html', error_message=str(e)), 500
 
 # Process the Excel files and generate the output file
 def process_files(file1_path):
     # Read the Excel files using pandas
 
-    excel_file = pd.ExcelFile('uploads/Calendar Dates - 5783.xlsx')
+    excel_file = pd.ExcelFile(file1_path)
 
     if len(excel_file.sheet_names) == 1:
-        df_old = pd.read_excel('uploads/Calendar Dates - 5783.xlsx', 0)
+        df_old = pd.read_excel(file1_path, 0)
     else:
-        df_old = pd.read_excel('uploads/Calendar Dates - 5783.xlsx', 1)
+        df_old = pd.read_excel(file1_path, 1)
 
     df_new = pd.read_excel('uploads/Calendar Dates - 5784.xlsx', 1)
 
@@ -95,10 +118,13 @@ def process_files(file1_path):
     failed_rows_df = pd.DataFrame(np.vstack([missing_table, risk_rows_table]), columns=missing_table.columns)
     failed_rows = failed_rows_df.values.tolist()
 
+    current_time = datetime.datetime.now()
     # Write the modified data to a new Excel file
+    output_path_saved = 'uploads/output'+ str(current_time.strftime('%Y-%m-%d_%H-%M-%S')) + '.xlsx'
+    error_path_saved = 'uploads/errors'+ str(current_time.strftime('%Y-%m-%d_%H-%M-%S')) + '.xlsx'
+
     output_path1 = 'uploads/output.xlsx'
     output_path2 = 'uploads/errors.xlsx'
-
     #failed_rows_df.to_html(index=False)
     print(failed_rows)
     final_df.drop(['row_value','text_length'], axis=1, inplace=True)
