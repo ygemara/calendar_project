@@ -71,8 +71,10 @@ def process_files(file1_path):
     # ...
     pattern = r"(Line \d+)"
     df_old['Line Value'] = df_old['Date and Line'].str.extract(pattern)
+    df_old['Hebrew'] = df_old['Hebrew'].apply(lambda x: "Adar I" if 'Adar' in x else x)
+    df_old.to_excel('uploads/test_adar.xlsx')
     df_new['Line Value'] = df_new['Date and Line'].str.extract(pattern)
-    df_new['Hebrew'] = df_new['Hebrew'].replace(r'^Adar.*', 'Adar', regex=True)
+    #df_new['Hebrew'] = df_new['Hebrew'].replace(r'^Adar.*', 'Adar', regex=True)
     df_new['row_value'] = list(range(len(df_new)))
     merged_df = df_old.merge(df_new, on=['Hebrew', 'Date', 'Line Value'], suffixes=['_5783', '_5784'], how='right')
 
